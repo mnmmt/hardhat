@@ -2,3 +2,5 @@
 workspace
 node_modules
 package-lock.json
+xmp.js
+out
