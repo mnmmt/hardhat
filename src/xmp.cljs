@@ -12,7 +12,7 @@
 (def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
 (def re-bpm #"Speed\[(.*?)\] BPM\[(.*?)\]")
 
-(let [p (node-pty/spawn "xmp" #js ["-l" "./test.it"] process/env)]
+(let [p (node-pty/spawn "./xmp-wrap" #js ["-l" "./test.it"] process/env)]
   (.on p "data"
        (fn [data]
          (let [[match-bpm subticks rate] (re-find re-bpm data)
