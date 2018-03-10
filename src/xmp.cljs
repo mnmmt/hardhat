@@ -5,6 +5,8 @@
     [process]
     [node-pty]))
 
+(enable-console-print!)
+
 (console.log "xmp.cljs")
 
 (def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
