@@ -3,6 +3,8 @@
 (ns xmp.core
   (:require
     [process]
+    [clojure.string]
+    [child_process]
     [node-pty]))
 
 (enable-console-print!)
@@ -12,9 +14,18 @@
 (def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
 (def re-bpm #"Speed\[(.*?)\] BPM\[(.*?)\]")
 
+(def find-args "-maxdepth 3 -type f \\( -iname *.xm -o -iname *.it -o -iname *.s3m -o -iname *.mod -o -iname *.med -o -iname *.oct -o -iname *.ahx \\)")
+
+(def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
+(def args (.slice process/argv (if in-lumo 3 2)))
+
+(defn find-mod-files [dirs]
+  (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
+    (.split (.toString (child_process/execSync find-cmd)) "\n")))
+
+
 ; TODO:
 ;  * TC - automount USB
-;  * list all modules on argv paths
 ;  * LCD UI
 ;  * sync signal
 
