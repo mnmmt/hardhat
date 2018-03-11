@@ -25,6 +25,9 @@
 ; > ch 3  on
 ;   ch 4  off
 
+(def gpio (try (.-Gpio (js/require "onoff"))
+            (catch :default e nil)))
+
 (console.log "xmp.cljs")
 
 (def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
@@ -39,6 +42,10 @@
   (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
     (.split (.toString (child_process/execSync find-cmd)) "\n")))
 
+; set up sync pin out
+(when gpio
+  (def sync-pin (gpio. 17 "out")))
+
 (let [p (node-pty/spawn "./xmp-wrap" #js ["-l" "./test.it"] process/env)]
   (.on p "data"
        (fn [data]
@@ -46,7 +53,12 @@
                [match-tick tick len] (re-find re-line data)]
            ;(println "---> LINE:" data)
            (if match-bpm (println "---> BPM:" subticks (js/parseInt rate 16)))
-           (if match-tick (println "---> Match:" tick len))))))
+           (when match-tick
+             (println "---> Match:" tick len)
+             ; send sync signal out
+             (when sync-pin
+               (.write sync-pin 1)
+               (js/setTimeout (fn [] (.write sync-pin 0)) 3)))))))
 
 ; toggle channel
 ; (p.write "1")
