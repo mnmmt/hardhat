@@ -9,6 +9,22 @@
 
 (enable-console-print!)
 
+; TODO:
+;  * LCD UI
+;  * sync signal
+;  * TC - automount USB
+
+; UI design:
+;
+; > module 1.xm
+;   module 2.it
+;
+; > all on
+;   ch 1  on
+;
+; > ch 3  on
+;   ch 4  off
+
 (console.log "xmp.cljs")
 
 (def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
@@ -22,23 +38,6 @@
 (defn find-mod-files [dirs]
   (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
     (.split (.toString (child_process/execSync find-cmd)) "\n")))
-
-
-; TODO:
-;  * TC - automount USB
-;  * LCD UI
-;  * sync signal
-
-; UI design:
-;
-; > module 1.xm
-;   module 2.it
-;
-; > all on
-;   ch 1  on
-;
-; > ch 3  on
-;   ch 4  off
 
 (let [p (node-pty/spawn "./xmp-wrap" #js ["-l" "./test.it"] process/env)]
   (.on p "data"
