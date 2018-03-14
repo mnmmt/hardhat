@@ -1,5 +1,5 @@
 #!./node_modules/.bin/lumo
-#!/usr/bin/env lumo
+
 (ns xmp.core
   (:require
     [process]
