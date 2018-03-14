@@ -71,17 +71,19 @@
         (print clear-screen)
         (print txt)))))
 
-(defn update-ui [state]
-  (case (-> state :display :screen)
-    0 (lcd-print ["Zero"])
-    1 (lcd-print ["Two"])))
+(defn update-ui! [state]
+  (let [line (-> state :display :line)]
+    (case (-> state :display :screen)
+      0 (lcd-print (->> state :modules (split-at line) (second) (split-at 2) (first)))
+      1 (lcd-print (map #(str "ch " %) (->> (range 8) (split-at line) (second) (split-at 2) (first)))))))
 
 ; if the ui atom changes update the ui
 (add-watch app-state :ui-changes
             (fn [k a old-state new-state]
-              (update-ui new-state)))
+              (update-ui! new-state)))
 
-(swap! app-state identity)
+(swap! app-state assoc :modules (find-mod-files args))
+(swap! app-state update-in [:display] assoc :screen 1)
 
 
 
