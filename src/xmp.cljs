@@ -30,6 +30,8 @@
 
 (console.log "xmp.cljs")
 
+(def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
+
 (def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
 (def re-bpm #"Speed\[(.*?)\] BPM\[(.*?)\]")
 
@@ -43,6 +45,10 @@
     (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
       (.split (.toString (child_process/execSync find-cmd)) "\n"))
     []))
+
+(defn lcd-print-shim [txt]
+  (print clear)
+  (print txt))
 
 
 ; set up sync pin out
