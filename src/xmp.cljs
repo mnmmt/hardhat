@@ -9,6 +9,11 @@
 
 (enable-console-print!)
 
+(def app-state
+  (atom {:display {:line 0 :screen 0}
+         :modules []
+         :bpm 180}))
+
 ; TODO:
 ;  * sync signal
 ;  * LCD UI
@@ -66,7 +71,18 @@
         (print clear-screen)
         (print txt)))))
 
-(lcd-print ["This is a test." "Boing."])
+(defn update-ui [state]
+  (case (-> state :display :screen)
+    0 (lcd-print ["Zero"])
+    1 (lcd-print ["Two"])))
+
+; if the ui atom changes update the ui
+(add-watch app-state :ui-changes
+            (fn [k a old-state new-state]
+              (update-ui new-state)))
+
+(swap! app-state identity)
+
 
 
 ; set up sync pin out
