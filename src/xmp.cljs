@@ -39,8 +39,11 @@
 (def args (.slice process/argv (if in-lumo 3 2)))
 
 (defn find-mod-files [dirs]
-  (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
-    (.split (.toString (child_process/execSync find-cmd)) "\n")))
+  (if (> (count dirs) 0)
+    (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
+      (.split (.toString (child_process/execSync find-cmd)) "\n"))
+    []))
+
 
 ; set up sync pin out
 (when gpio
