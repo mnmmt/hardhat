@@ -10,8 +10,9 @@
 (enable-console-print!)
 
 ; TODO:
-;  * LCD UI
 ;  * sync signal
+;  * LCD UI
+;  * physical build
 ;  * TC - automount USB
 
 ; UI design:
