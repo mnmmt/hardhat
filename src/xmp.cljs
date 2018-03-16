@@ -2,6 +2,7 @@
 
 (ns xmp.core
   (:require
+    [path]
     [process]
     [clojure.string]
     [child_process]
@@ -10,7 +11,7 @@
 (enable-console-print!)
 
 (def app-state
-  (atom {:display {:line 0 :screen 0}
+  (atom {:display {:screen nil :module nil :channel 0}
          :modules []
          :bpm 180}))
 
@@ -71,21 +72,33 @@
         (print clear-screen)
         (print txt)))))
 
-(defn update-ui! [state]
-  (let [line (-> state :display :line)]
-    (case (-> state :display :screen)
-      0 (lcd-print (->> state :modules (split-at line) (second) (split-at 2) (first)))
-      1 (lcd-print (map #(str "ch " %) (->> (range 8) (split-at line) (second) (split-at 2) (first)))))))
+(defn lcd-track-list [modules module]
+  (let [pos (.indexOf modules module)
+        mods (->> modules
+                  (split-at pos)
+                  (second)
+                  (split-at 2)
+                  (first)
+                  (map path.basename))
+        mods [(str "> " (first mods))
+              (str "  " (second mods))]]
+    (lcd-print mods)))
 
-; if the ui atom changes update the ui
+(defn lcd-channel-list [channel]
+  (lcd-print (map #(str "ch " %) (->> (range 8) (split-at channel) (second) (split-at 2) (first)))))
+
+(defn update-ui! [state]
+  (case (-> state :display :screen)
+    nil (lcd-track-list (-> state :modules) (-> state :display :module))
+    :track (lcd-channel-list (-> state :display :channel)))
+  (print state))
+
+; if the ui atom changes, update the ui
 (add-watch app-state :ui-changes
             (fn [k a old-state new-state]
               (update-ui! new-state)))
 
 (swap! app-state assoc :modules (find-mod-files args))
-(swap! app-state update-in [:display] assoc :screen 1)
-
-
 
 ; set up sync pin out
 (when gpio
