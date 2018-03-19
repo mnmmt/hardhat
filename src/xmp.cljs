@@ -85,7 +85,12 @@
     (lcd-print mods)))
 
 (defn lcd-channel-list [channel]
-  (lcd-print (map #(str "ch " %) (->> (range 8) (split-at channel) (second) (split-at 2) (first)))))
+  (lcd-print (map #(str "ch " %)
+                  (->> (range 8)
+                       (split-at channel) 
+                       (second) 
+                       (split-at 2) 
+                       (first)))))
 
 (defn update-ui! [state]
   (case (-> state :display :screen)
