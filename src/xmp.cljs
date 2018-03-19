@@ -103,6 +103,27 @@
             (fn [k a old-state new-state]
               (update-ui! new-state)))
 
+; set up input
+(if lcd
+  (do)
+  (do
+    (.setRawMode process/stdin true)
+    (.resume process/stdin)
+    (.setEncoding process/stdin "utf8")
+    (.on process/stdin "data"
+         (fn [k]
+           (let [v (.toString (js/Buffer. k) "hex")]
+             (case v
+               "1b5b44" (js/console.log "left")
+               "1b5b43" (js/console.log "right")
+               "1b5b41" (js/console.log "up")
+               "1b5b42" (js/console.log "down")
+               "20" (js/console.log "space")
+               "0d" (js/console.log "enter")
+               "1b" (process/exit)
+               "03" (process/exit)
+               (js/console.log "key" v)))))))
+
 (swap! app-state assoc :modules (find-mod-files args))
 
 ; set up sync pin out
