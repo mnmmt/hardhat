@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "adafruit-i2c-lcd": "^1.0.2",
+    "onoff": "^2.0.0"
+  }
+}
