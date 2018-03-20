@@ -1,3 +1,8 @@
 #!/bin/sh
 
-xmp "$@"
+if [ "`command -v xmp`" = "" ]
+then
+  LD_LIBRARY_PATH=. ./xmp ../test.it
+else
+  xmp "$@"
+fi
