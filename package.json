@@ -3,7 +3,7 @@
     "node-pty": "^0.7.4",
     "rpi-gpio": "^0.9.1"
   },
-  "dev-dependencies": {
+  "devDependencies": {
     "lumo-cljs": "^1.8.0-beta",
     "@cljs-oss/module-deps": "^1.1.1",
     "goog": "^0.2.1"
