@@ -105,8 +105,8 @@
 
 (defn update-ui! [state]
   (case (-> state :display :screen)
-    nil (lcd-track-list (-> state :modules) (-> state :display :module))
-    :track (lcd-channel-list (-> state :display :channel)))
+    :mods (lcd-track-list (-> state :modules) (-> state :display :module))
+    :play (lcd-channel-list (-> state :display :channel)))
   (print state))
 
 ; if the ui atom changes, update the ui
