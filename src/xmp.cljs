@@ -11,7 +11,10 @@
 (enable-console-print!)
 
 (def app-state
-  (atom {:display {:screen nil :module nil :channel 0}
+  (atom {:display {:screen :mods
+                   :module nil
+                   :channel 0}
+         :playing nil
          :modules []
          :bpm 180}))
 
@@ -59,8 +62,10 @@
 (defn find-mod-files [dirs]
   (if (> (count dirs) 0)
     (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
-      (.split (.toString (child_process/execSync find-cmd)) "\n"))
-    []))
+      (to-array (remove #(= % "") (.split (.toString (child_process/execSync find-cmd)) "\n"))))
+    #js []))
+
+; ***** display handling ***** ;
 
 (defn lcd-print [messages]
   (let [txt (clojure.string/join "\n" messages)]
@@ -73,7 +78,9 @@
         (print txt)))))
 
 (defn lcd-track-list [modules module]
-  (let [pos (.indexOf modules module)
+  (let [pos (.indexOf (to-array modules) module)
+        ;modules (concat ["---"] modules)
+        modules (concat modules modules)
         mods (->> modules
                   (split-at pos)
                   (second)
@@ -103,6 +110,33 @@
             (fn [k a old-state new-state]
               (update-ui! new-state)))
 
+; ***** input handling ***** ;
+
+; key handler functions
+(defn scroll-fn [dir-fn state]
+  (let [modules (@state :modules)
+        module (-> @state :display :module)
+        index (max (.indexOf modules module) 0)]
+    (swap! state assoc-in [:display :module] (get modules (mod (dir-fn index) (count modules))))))
+
+; key handler map
+(def keymap
+  {:mods {:right
+          (fn [state])
+          :left
+          (fn [state])
+          :up
+          (partial scroll-fn dec)
+          :down
+          (partial scroll-fn inc)
+          :select
+          (fn [state])}
+   :play { }})
+
+; handle keys
+(defn press-key [k state]
+  ((get-in keymap [(get-in @state [:display :screen]) k]) state))
+
 ; set up input
 (if lcd
   (do)
@@ -114,17 +148,17 @@
          (fn [k]
            (let [v (.toString (js/Buffer. k) "hex")]
              (case v
-               "1b5b44" (js/console.log "left")
-               "1b5b43" (js/console.log "right")
-               "1b5b41" (js/console.log "up")
-               "1b5b42" (js/console.log "down")
-               "20" (js/console.log "space")
-               "0d" (js/console.log "enter")
+               "1b5b44" (press-key :left app-state)
+               "1b5b43" (press-key :right app-state)
+               "1b5b41" (press-key :up app-state)
+               "1b5b42" (press-key :down app-state)
+               "20" (press-key :select app-state)
+               "0d" (press-key :select app-state)
                "1b" (process/exit)
                "03" (process/exit)
                (js/console.log "key" v)))))))
 
-(swap! app-state assoc :modules (find-mod-files args))
+; ***** mod player control ***** ;
 
 ; set up sync pin out
 (when gpio
@@ -153,3 +187,11 @@
 ; toggle pause
 ; (p.write " ")
 
+; ***** init ***** ;
+
+(swap! app-state
+       (fn [old-state]
+         (let [mod-files (find-mod-files args)]
+         (-> old-state
+             (assoc :modules mod-files)
+             (assoc-in [:display :module] (first mod-files))))))
