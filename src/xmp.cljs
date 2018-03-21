@@ -48,17 +48,21 @@
 
 (console.log "xmp.cljs")
 
-; terminal codes to clear the screen
-(def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
-
-(def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
-(def re-bpm #"Speed\[(.*?)\] BPM\[(.*?)\]")
-
-(def find-args "-maxdepth 3 -type f \\( -iname *.xm -o -iname *.it -o -iname *.s3m -o -iname *.mod -o -iname *.med -o -iname *.oct -o -iname *.ahx \\)")
-
+; check how we were called (dev or prod)
 (def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
 (def args (.slice process/argv (if in-lumo 3 2)))
 
+; terminal codes to clear the screen
+(def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
+
+; triage tty output from xmp
+(def re-line #"^.*([A-Z0-9]{2})\/([A-Z0-9]{2})\] Chn\[")
+(def re-bpm #"Speed\[(.*?)\] BPM\[(.*?)\]")
+
+; find shell command args to discover module files
+(def find-args "-maxdepth 3 -type f \\( -iname *.xm -o -iname *.it -o -iname *.s3m -o -iname *.mod -o -iname *.med -o -iname *.oct -o -iname *.ahx \\)")
+
+; function to find module files
 (defn find-mod-files [dirs]
   (if (> (count dirs) 0)
     (let [find-cmd (str "find '" (clojure.string/join "' '" dirs) "' " find-args)]
