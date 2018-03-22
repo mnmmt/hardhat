@@ -197,31 +197,36 @@
 
 ; ***** init ***** ;
 
-; start the xmp manager loop
-(go
-  (loop [player nil]
-    ; kill the old xmp session
-    (let [module-file (<! player-chan)]
-      (when player (.kill player))
-      (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
-        (.on new-player "data" (partial got-player-data app-state))
-        (recur new-player)))))
+(defn main []
+  ; start the xmp manager loop
+  (go
+    (loop [player nil]
+      ; kill the old xmp session
+      (let [module-file (<! player-chan)]
+        (when player (.kill player))
+        (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
+          (.on new-player "data" (partial got-player-data app-state))
+          (recur new-player)))))
 
-; what to do when mutation happens
-(add-watch app-state 
-           :ui-changes
-           (fn [k a old-state new-state]
-             ; when active module changes send to xmp manager loop
-             (let [playing (new-state :playing)]
-               (when (and (not= (old-state :playing) playing) playing)
-                 (put! player-chan playing)))
-             ; update the user interface
-             (update-ui! new-state)))
+  ; what to do when mutation happens
+  (add-watch app-state
+             :ui-changes
+             (fn [k a old-state new-state]
+               ; when active module changes send to xmp manager loop
+               (let [playing (new-state :playing)]
+                 (when (and (not= (old-state :playing) playing) playing)
+                   (put! player-chan playing)))
+               ; update the user interface
+               (update-ui! new-state)))
 
-; set the initial state after loading in module list
-(swap! app-state
-       (fn [old-state]
-         (let [mod-files (find-mod-files args)]
-         (-> old-state
-             (assoc :modules mod-files)
-             (assoc-in [:display :module] (first mod-files))))))
+  ; set the initial state after loading in module list
+  (swap! app-state
+         (fn [old-state]
+           (let [mod-files (find-mod-files args)]
+             (-> old-state
+                 (assoc :modules mod-files)
+                 (assoc-in [:display :module] (first mod-files)))))))
+
+; avoid missing goog.global.setTimeout
+; https://dev.clojure.org/jira/browse/ASYNC-110
+(js/setTimeout main 0)
