@@ -6,7 +6,9 @@
     [process]
     [clojure.string]
     [child_process]
-    [node-pty]))
+    [node-pty]
+    [cljs.core.async :refer [chan put! <!]])
+  (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (enable-console-print!)
 
@@ -14,9 +16,12 @@
   (atom {:display {:screen :mods
                    :module nil
                    :channel 0}
-         :playing nil
          :modules []
-         :bpm 180}))
+         :last-tick 0
+         :bpm 180
+         :playing nil}))
+
+(def player-chan (chan))
 
 ; TODO:
 ;  * sync signal
@@ -50,7 +55,7 @@
 
 ; check how we were called (dev or prod)
 (def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
-(def args (.slice process/argv (if in-lumo 3 2)))
+(def args (.slice process/argv (if in-lumo (inc (.indexOf process/argv "xmp.cljs")) 2)))
 
 ; terminal codes to clear the screen
 (def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
@@ -109,11 +114,6 @@
     :play (lcd-channel-list (-> state :display :channel)))
   (print state))
 
-; if the ui atom changes, update the ui
-(add-watch app-state :ui-changes
-            (fn [k a old-state new-state]
-              (update-ui! new-state)))
-
 ; ***** input handling ***** ;
 
 ; key handler functions
@@ -134,7 +134,7 @@
           :down
           (partial scroll-fn inc)
           :select
-          (fn [state])}
+          (fn [state] (swap! state assoc :playing (-> @state :display :module)))}
    :play { }})
 
 ; handle keys
@@ -166,21 +166,25 @@
 
 ; set up sync pin out
 (when gpio
-  (def sync-pin (gpio. 17 "out")))
+  (def sync-pin (gpio. 17 "out"))
+  ; set up sync timer
+  )
 
-(let [p (node-pty/spawn "./xmp-wrap" #js ["-l" "./test.it"] process/env)]
-  (.on p "data"
-       (fn [data]
-         (let [[match-bpm subticks rate] (re-find re-bpm data)
-               [match-tick tick len] (re-find re-line data)]
-           ;(println "---> LINE:" data)
-           (if match-bpm (println "---> BPM:" subticks (js/parseInt rate 16)))
-           (when match-tick
-             (println "---> Match:" tick len)
-             ; send sync signal out
-             (when sync-pin
-               (.write sync-pin 1)
-               (js/setTimeout (fn [] (.write sync-pin 0)) 3)))))))
+(defn got-player-data [app-state data]
+  (let [[match-bpm subticks rate] (re-find re-bpm data)
+        [match-tick tick len] (re-find re-line data)]
+    ;(println "---> LINE:" data)
+    (if match-bpm
+      ;(println "---> BPM:" subticks (js/parseInt rate 16))
+      (swap! app-state assoc :bpm (js/parseInt rate 16)))
+    (when match-tick
+      (let [tick-idx (- (js/parseInt tick 16) 1)]
+        ;(println "---> Match:" tick len tick-idx)
+        ; send sync signal out
+        (when (and sync-pin (= (mod tick-idx 4) 0))
+          ;(print "sync")
+          (.write sync-pin 1)
+          (js/setTimeout (fn [] (.write sync-pin 0)) 3))))))
 
 ; toggle channel
 ; (p.write "1")
@@ -193,6 +197,28 @@
 
 ; ***** init ***** ;
 
+; start the xmp manager loop
+(go
+  (loop [player nil]
+    ; kill the old xmp session
+    (let [module-file (<! player-chan)]
+      (when player (.kill player))
+      (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
+        (.on new-player "data" (partial got-player-data app-state))
+        (recur new-player)))))
+
+; what to do when mutation happens
+(add-watch app-state 
+           :ui-changes
+           (fn [k a old-state new-state]
+             ; when active module changes send to xmp manager loop
+             (let [playing (new-state :playing)]
+               (when (and (not= (old-state :playing) playing) playing)
+                 (put! player-chan playing)))
+             ; update the user interface
+             (update-ui! new-state)))
+
+; set the initial state after loading in module list
 (swap! app-state
        (fn [old-state]
          (let [mod-files (find-mod-files args)]
