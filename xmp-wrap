@@ -2,7 +2,7 @@
 
 if [ "`command -v xmp`" = "" ]
 then
-  LD_LIBRARY_PATH=. ./xmp ../test.it
+  LD_LIBRARY_PATH=arm-binaries/ ./arm-binaries/xmp "$@"
 else
   xmp "$@"
 fi
