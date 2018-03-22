@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$1" = "" ]
+then
+  echo "Usage: `basename $0` HOST"
+else
+  rsync -avz --exclude ".git" --exclude "node_modules" --exclude "src" --exclude "workspace" --exclude ":test" ./ tc@$1:~/xmp-player
+fi
