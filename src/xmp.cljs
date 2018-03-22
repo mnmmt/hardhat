@@ -126,9 +126,9 @@
 ; key handler map
 (def keymap
   {:mods {:right
-          (fn [state])
+          (fn [state] (print "right"))
           :left
-          (fn [state])
+          (fn [state] (print "left"))
           :up
           (partial scroll-fn dec)
           :down
@@ -138,12 +138,23 @@
    :play { }})
 
 ; handle keys
-(defn press-key [k state]
+(defn press-key [state k]
   ((get-in keymap [(get-in @state [:display :screen]) k]) state))
+
+(def button-map
+  {0x01 :select
+   0x02 :right
+   0x04 :down
+   0x08 :up
+   0x10 :left})
 
 ; set up input
 (if lcd
-  (do)
+  ; using LCD button interface on device
+  (.on lcd "button_down"
+       (fn [button]
+         (press-key app-state (get button-map button))))
+  ; using console tty for development
   (do
     (.setRawMode process/stdin true)
     (.resume process/stdin)
@@ -152,12 +163,12 @@
          (fn [k]
            (let [v (.toString (js/Buffer. k) "hex")]
              (case v
-               "1b5b44" (press-key :left app-state)
-               "1b5b43" (press-key :right app-state)
-               "1b5b41" (press-key :up app-state)
-               "1b5b42" (press-key :down app-state)
-               "20" (press-key :select app-state)
-               "0d" (press-key :select app-state)
+               "1b5b44" (press-key app-state :left)
+               "1b5b43" (press-key app-state :right)
+               "1b5b41" (press-key app-state :up)
+               "1b5b42" (press-key app-state :down)
+               "20" (press-key app-state :select)
+               "0d" (press-key app-state :select)
                "1b" (process/exit)
                "03" (process/exit)
                (js/console.log "key" v)))))))
