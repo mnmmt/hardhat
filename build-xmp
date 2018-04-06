@@ -1,0 +1,21 @@
+#!/bin/sh
+# https://github.com/cmatsuoka/xmp-cli/issues/9#issuecomment-226537765
+
+d=`dirname "$0"`
+p=`readlink -f "$d"`
+h="$p/build/"
+
+# git clone http://github.com/cmatsuoka/libxmp build/libxmp
+# git clone http://github.com/cmatsuoka/xmp-cli build/xmp-cli
+
+#cd "$h/libxmp"
+#autoconf
+#./configure
+#make
+
+cd "$h/xmp-cli/"
+if [ ! -f "$h/xmp-cli/Makefile" ]
+then
+  PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$h/libxmp" LDFLAGS=-L"$h/libxmp/lib" CFLAGS=-I"$h/libxmp/include" ./configure
+fi
+make
