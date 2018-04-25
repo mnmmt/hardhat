@@ -55,7 +55,7 @@
 
 ; check how we were called (dev or prod)
 (def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
-(def args (.slice process/argv (if in-lumo (inc (.indexOf process/argv "xmp.cljs")) 2)))
+(def args (.slice process/argv (if in-lumo (inc (.indexOf process/argv "src/xmp.cljs")) 2)))
 
 ; terminal codes to clear the screen
 (def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
