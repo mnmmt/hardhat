@@ -1,8 +1,4 @@
 #!/bin/sh
 
-if [ "`command -v xmp`" = "" ]
-then
-  LD_LIBRARY_PATH=arm-binaries/ ./arm-binaries/xmp "$@"
-else
-  xmp "$@"
-fi
+LD_LIBRARY_PATH=./build/libxmp/lib exec ./build/xmp-cli/src/xmp -d alsa "$@" 2>/dev/null
+
