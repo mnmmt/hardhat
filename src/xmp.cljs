@@ -228,7 +228,8 @@
                  (when (and (not= (old-state :playing) playing) playing)
                    (put! player-chan playing)))
                ; update the user interface
-               (update-ui! new-state)))
+               (when (not= (old-state :display) (new-state :display))
+                 (update-ui! new-state))))
 
   ; set the initial state after loading in module list
   (swap! app-state
