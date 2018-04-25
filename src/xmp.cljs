@@ -16,10 +16,10 @@
   (atom {:display {:screen :mods
                    :module nil
                    :channel 0}
+         :playing nil   
          :modules []
-         :last-tick 0
-         :bpm 180
-         :playing nil}))
+         :sync {:bpm 180
+                :last-row 0}}))
 
 (def player-chan (chan))
 
@@ -46,6 +46,9 @@
 (def lcd (try (let [plate (.-plate (js/require "adafruit-i2c-lcd"))]
                 (plate. 1 0x20))
               (catch :default e nil)))
+
+; set up sync pin out
+(def sync-pin (when gpio (gpio. 17 "out")))
 
 (when lcd
   ; turn on sainsmart 1602 I2C backlight
@@ -175,27 +178,25 @@
 
 ; ***** mod player control ***** ;
 
-; set up sync pin out
-(when gpio
-  (def sync-pin (gpio. 17 "out"))
-  ; set up sync timer
-  )
+(defn send-pulse [last-tick]
+  (when sync-pin
+    (.writeSync sync-pin 1)
+    (js/setTimeout (fn [] (.writeSync sync-pin 0)) 4)) )
 
-(defn got-player-data [app-state data]
-  (let [[match-bpm subticks rate] (re-find re-bpm data)
-        [match-tick tick len] (re-find re-line data)]
-    ;(println "---> LINE:" data)
-    (if match-bpm
-      ;(println "---> BPM:" subticks (js/parseInt rate 16))
-      (swap! app-state assoc :bpm (js/parseInt rate 16)))
-    (when match-tick
-      (let [tick-idx (- (js/parseInt tick 16) 1)]
-        ;(println "---> Match:" tick len tick-idx)
-        ; send sync signal out
-        (when (and sync-pin (= (mod tick-idx 4) 0))
-          ;(print "sync")
-          (.write sync-pin 1)
-          (js/setTimeout (fn [] (.write sync-pin 0)) 3))))))
+(defn got-player-data! [state data]
+  (let [lines (.split (.toString data) "\r\n")]
+    (doseq [line lines]
+      (let [s (try (JSON.parse line) (catch :default e nil))]
+        (when s
+          (let [row (.-row s)
+                last-row (get-in @state [:sync :last-row])
+                time-hw-ms (.-time_hw s)
+                time-alsa-delay-ms (.-time_alsa_delay s)]
+            (when (and (= (mod row 4) 0)
+                       (not= row last-row))
+              (let [next-tick-ms (- time-alsa-delay-ms (- (.getTime (js/Date.)) time-hw-ms))]
+                (js/setTimeout send-pulse (max 0 next-tick-ms))
+                (swap! state assoc-in [:sync :last-row] row)))))))))
 
 ; toggle channel
 ; (p.write "1")
@@ -216,7 +217,7 @@
       (let [module-file (<! player-chan)]
         (when player (.kill player))
         (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
-          (.on new-player "data" (partial got-player-data app-state))
+          (.on new-player "data" (partial got-player-data! app-state))
           (recur new-player)))))
 
   ; what to do when mutation happens
