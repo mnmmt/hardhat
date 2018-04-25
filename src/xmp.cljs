@@ -65,7 +65,7 @@
 (def re-bpm #"Speed\[(.*?)\] BPM\[(.*?)\]")
 
 ; find shell command args to discover module files
-(def find-args "-maxdepth 3 -type f \\( -iname *.xm -o -iname *.it -o -iname *.s3m -o -iname *.mod -o -iname *.med -o -iname *.oct -o -iname *.ahx \\)")
+(def find-args "-maxdepth 3 -type f \\( -iname \\*.xm -o -iname \\*.it -o -iname \\*.s3m -o -iname \\*.mod -o -iname \\*.med -o -iname \\*.oct -o -iname \\*.ahx \\)")
 
 ; function to find module files
 (defn find-mod-files [dirs]
