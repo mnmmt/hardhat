@@ -31,3 +31,8 @@ build/xmp-cli/Makefile: build/xmp-cli/configure
 ./build/xmp-cli/src/xmp: $(XMPLIBSPATH) build/xmp-cli/Makefile
 	cd build/xmp-cli/ && make
 
+.PHONY: clean
+
+clean:
+	rm -f xmp.js
+	rm -rf target out
