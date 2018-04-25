@@ -82,7 +82,6 @@
         (.clear lcd)
         (.message lcd txt))
       (do
-        (print clear-screen)
         (print txt)))))
 
 (defn lcd-track-list [modules module]
