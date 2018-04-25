@@ -4,6 +4,6 @@ if [ "$1" = "" ]
 then
   echo "Usage: `basename $0` HOST"
 else
-  rsync -avz --exclude ".git" --exclude "node_modules" --exclude "src" --exclude "workspace" --exclude ":test" --exclude "build" ./ tc@$1:~/hardhat
+  rsync -avzx --exclude ".git" --exclude "node_modules" --exclude "src" --exclude "workspace" --exclude ":test" --exclude "build" ./ tc@$1:~/hardhat
   rsync build/xmp-cli/src/main.c tc@$1:~/hardhat/build/xmp-cli/src/main.c
 fi
