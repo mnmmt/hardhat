@@ -15,13 +15,17 @@
 (def app-state
   (atom {:display {:screen :mods
                    :module nil
-                   :channel 0}
-         :playing nil   
+                   :edit-line nil}
+         :playing nil
+         :play-state "stop"
          :modules []
          :sync {:bpm 180
-                :last-row 0}}))
+                :last-row 0
+                :freq 4}}))
 
 (def player-chan (chan))
+
+(def channel-count 8)
 
 ; TODO:
 ;  * sync signal
@@ -75,6 +79,9 @@
 
 ; ***** display handling ***** ;
 
+(defn play-state-toggle [play-state]
+  (if (= play-state "play") "stop" "play"))
+
 (defn lcd-print [messages]
   (let [txt (clojure.string/join "\n" messages)]
     (if lcd
@@ -98,42 +105,67 @@
               (str "  " (second mods))]]
     (lcd-print mods)))
 
-(defn lcd-channel-list [channel]
-  (lcd-print (map #(str "ch " %)
-                  (->> (range 8)
-                       (split-at channel) 
-                       (second) 
-                       (split-at 2) 
-                       (first)))))
+(defn lcd-edit-list [edit-line play-state sync-freq]
+  (let [lines (->> (range channel-count)
+                   (map #(str "ch " %))
+                   (concat [(play-state-toggle play-state) (str "tick: " sync-freq)]))
+        lines (concat lines lines)
+        lines (->> lines
+                   (split-at (or edit-line 0))
+                   (second)
+                   (split-at 2)
+                   (first)) 
+        ; TODO left-pad first to add BPM
+        lines [(str "> " (first lines))
+               (str "  " (second lines))]]
+    (lcd-print lines)))
 
 (defn update-ui! [state]
   (case (-> state :display :screen)
     :mods (lcd-track-list (-> state :modules) (-> state :display :module))
-    :play (lcd-channel-list (-> state :display :channel)))
+    :play (lcd-edit-list (-> state :display :edit-line) (-> state :play-state) (-> state :sync :freq)))
   (print state))
 
 ; ***** input handling ***** ;
 
+(defn toggle-screen [state]
+  (update-in state [:display :screen] #(if (= % :mods) :play :mods)))
+
 ; key handler functions
-(defn scroll-fn [dir-fn state]
+(defn scroll-mods-fn [dir-fn state]
   (let [modules (@state :modules)
         module (-> @state :display :module)
         index (max (.indexOf modules module) 0)]
     (swap! state assoc-in [:display :module] (get modules (mod (dir-fn index) (count modules))))))
+
+(defn scroll-edit-fn [dir-fn state]
+  (swap! state update-in [:display :edit-line] (fn [edit-line] (mod (dir-fn edit-line) (+ channel-count 2)))))
 
 ; key handler map
 (def keymap
   {:mods {:right
           (fn [state] (print "right"))
           :left
-          (fn [state] (print "left"))
+          (fn [state] (swap! state toggle-screen))
           :up
-          (partial scroll-fn dec)
+          (partial scroll-mods-fn dec)
           :down
-          (partial scroll-fn inc)
+          (partial scroll-mods-fn inc)
           :select
-          (fn [state] (swap! state assoc :playing (-> @state :display :module)))}
-   :play { }})
+          (fn [state] (swap! state #(-> %
+                                        (assoc :playing (-> % :display :module))
+                                        (assoc-in [:display :screen] :play))))}
+   :play {:right
+          (fn [state] (print "right"))
+          :left
+          (fn [state] (swap! state toggle-screen))
+          :up
+          (partial scroll-edit-fn dec)
+          :down
+          (partial scroll-edit-fn inc)
+          :select
+          (fn [state]
+            (print (-> @state :display :selected)))}})
 
 ; handle keys
 (defn press-key [state k]
