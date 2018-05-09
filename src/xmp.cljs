@@ -30,20 +30,7 @@
          :player-chan (chan)}))
 
 ; TODO:
-;  * LCD UI
-;  * physical build
 ;  * TC - automount USB
-
-; UI design:
-;
-; > module 1.xm
-;   module 2.it
-;
-; > all on
-;   ch 1  on
-;
-; > ch 3  on
-;   ch 4  off
 
 (def gpio (try (.-Gpio (js/require "onoff"))
             (catch :default e nil)))
@@ -262,15 +249,6 @@
                                   (assoc-in [:sync :last-row] row)
                                   (assoc-in [:player :bpm] bpm)))))))))))
 
-; toggle channel
-; (p.write "1")
-
-; unmute all
-; (p.write "!")
-
-; toggle pause
-; (p.write " ")
-
 ; ***** init ***** ;
 
 (defn main []
@@ -279,6 +257,8 @@
     (loop [player nil]
       (let [[action & args] (<! (@app-state :player-chan))]
         (case action
+          ; TODO: toggle pause
+          ; (p.write " ")
           :play
           (let [[module-file] args
                 channels (-> @app-state :player :channels)
