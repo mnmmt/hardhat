@@ -4,6 +4,7 @@ XMPLIBSPATH=$(foreach lib,$(XMPLIBS),build/libxmp/lib/$(lib))
 all: xmp.js ./build/xmp-cli/src/xmp
 
 xmp.js: src/xmp.cljs
+	rm -rf target out
 	./node_modules/.bin/lumo -K -D andare:0.7.0 build.cljs
 
 build/libxmp/.git:
