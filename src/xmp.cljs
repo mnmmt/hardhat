@@ -15,20 +15,20 @@
 (def app-state
   (atom {:display {:screen :mods
                    :module nil
-                   :edit-line nil}
-         :playing nil
-         :play-state "stop"
+                   :edit-line 0}
+         :player {:playing nil
+                  :play-state "stop"
+                  :tick-freq 4
+                  :bpm 180
+                  :chans [1 1 1 1 1 1 1 1]}
          :modules []
-         :sync {:bpm 180
-                :last-row 0
-                :freq 4}}))
+         :sync {:last-row 0}}))
 
 (def player-chan (chan))
 
 (def channel-count 8)
 
 ; TODO:
-;  * sync signal
 ;  * LCD UI
 ;  * physical build
 ;  * TC - automount USB
@@ -77,6 +77,11 @@
       (to-array (remove #(= % "") (.split (.toString (child_process/execSync find-cmd)) "\n"))))
     #js []))
 
+; check if keys have changed
+(defn changed? [a b ks]
+  (not= (map a ks)
+        (map b ks)))
+
 ; ***** display handling ***** ;
 
 (defn play-state-toggle [play-state]
@@ -123,13 +128,14 @@
 (defn update-ui! [state]
   (case (-> state :display :screen)
     :mods (lcd-track-list (-> state :modules) (-> state :display :module))
-    :play (lcd-edit-list (-> state :display :edit-line) (-> state :play-state) (-> state :sync :freq)))
+    :play (lcd-edit-list (-> state :display :edit-line) (-> state :player :play-state) (-> state :player :tick-freq)))
   (print state))
 
 ; ***** input handling ***** ;
 
-(defn toggle-screen [state]
-  (update-in state [:display :screen] #(if (= % :mods) :play :mods)))
+(defn cycle-values [values old-value]
+  (let [pos (.indexOf (clj->js values) (clj->js old-value))]
+    (get values (mod (inc pos) (count values)))))
 
 ; key handler functions
 (defn scroll-mods-fn [dir-fn state]
@@ -141,31 +147,38 @@
 (defn scroll-edit-fn [dir-fn state]
   (swap! state update-in [:display :edit-line] (fn [edit-line] (mod (dir-fn edit-line) (+ channel-count 2)))))
 
+(defn toggle-screen! [state]
+  (swap! state update-in [:display :screen] (partial cycle-values [:play :mods])))
+
 ; key handler map
 (def keymap
   {:mods {:right
           (fn [state] (print "right"))
           :left
-          (fn [state] (swap! state toggle-screen))
+          toggle-screen!
           :up
           (partial scroll-mods-fn dec)
           :down
           (partial scroll-mods-fn inc)
           :select
           (fn [state] (swap! state #(-> %
-                                        (assoc :playing (-> % :display :module))
+                                        (assoc-in [:player :playing] (-> % :display :module))
                                         (assoc-in [:display :screen] :play))))}
    :play {:right
           (fn [state] (print "right"))
           :left
-          (fn [state] (swap! state toggle-screen))
+          toggle-screen!
           :up
           (partial scroll-edit-fn dec)
           :down
           (partial scroll-edit-fn inc)
           :select
           (fn [state]
-            (print (-> @state :display :selected)))}})
+            (let [line (or (-> @state :display :edit-line) 0)]
+              (cond
+                (= line 0) (swap! state update-in [:player :play-state] (partial cycle-values ["stop" "play"]))
+                (= line 1) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
+                :else (print "line: " line))))}})
 
 ; handle keys
 (defn press-key [state k]
@@ -218,12 +231,15 @@
           (let [row (.-row s)
                 last-row (get-in @state [:sync :last-row])
                 time-hw-ms (.-time_hw s)
-                time-alsa-delay-ms (.-time_alsa_delay s)]
+                time-alsa-delay-ms (.-time_alsa_delay s)
+                bpm (.-bpm s)]
             (when (and (= (mod row 4) 0)
                        (not= row last-row))
               (let [next-tick-ms (- time-alsa-delay-ms (- (.getTime (js/Date.)) time-hw-ms))]
                 (js/setTimeout send-pulse (max 0 next-tick-ms))
-                (swap! state assoc-in [:sync :last-row] row)))))))))
+                (swap! state #(-> %
+                                  (assoc-in [:sync :last-row] row)
+                                  (assoc-in [:player :bpm] bpm)))))))))))
 
 ; toggle channel
 ; (p.write "1")
@@ -243,20 +259,24 @@
       ; kill the old xmp session
       (let [module-file (<! player-chan)]
         (when player (.kill player))
-        (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
-          (.on new-player "data" (partial got-player-data! app-state))
-          (recur new-player)))))
+        (if (= module-file :stop)
+          (recur nil)
+          (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
+            (.on new-player "data" (partial got-player-data! app-state))
+            (recur new-player))))))
 
   ; what to do when mutation happens
   (add-watch app-state
              :ui-changes
              (fn [k a old-state new-state]
                ; when active module changes send to xmp manager loop
-               (let [playing (new-state :playing)]
-                 (when (and (not= (old-state :playing) playing) playing)
-                   (put! player-chan playing)))
+               (when (changed? (old-state :player) (new-state :player) [:playing :play-state])
+                 (put! player-chan
+                       (if (= (-> new-state :player :play-state) "play")
+                         (-> new-state :player :playing)
+                         :stop)))
                ; update the user interface
-               (when (not= (old-state :display) (new-state :display))
+               (when (changed? old-state new-state [:player :display])
                  (update-ui! new-state))))
 
   ; set the initial state after loading in module list
