@@ -150,10 +150,23 @@
 (defn toggle-screen! [state]
   (swap! state update-in [:display :screen] (partial cycle-values [:play :mods])))
 
+(defn select-mod! [state]
+  (swap! state
+         #(-> %
+              (assoc-in [:player :playing] (-> % :display :module))
+              (assoc-in [:display :screen] :play))))
+
+(defn select-player-setting! [state]
+  (let [line (or (-> @state :display :edit-line) 0)]
+    (cond
+      (= line 0) (swap! state update-in [:player :play-state] (partial cycle-values ["stop" "play"]))
+      (= line 1) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
+      :else (print "line: " line))))
+
 ; key handler map
 (def keymap
   {:mods {:right
-          (fn [state] (print "right"))
+          toggle-screen!
           :left
           toggle-screen!
           :up
@@ -161,11 +174,9 @@
           :down
           (partial scroll-mods-fn inc)
           :select
-          (fn [state] (swap! state #(-> %
-                                        (assoc-in [:player :playing] (-> % :display :module))
-                                        (assoc-in [:display :screen] :play))))}
+          select-mod!}
    :play {:right
-          (fn [state] (print "right"))
+          toggle-screen!
           :left
           toggle-screen!
           :up
@@ -173,12 +184,7 @@
           :down
           (partial scroll-edit-fn inc)
           :select
-          (fn [state]
-            (let [line (or (-> @state :display :edit-line) 0)]
-              (cond
-                (= line 0) (swap! state update-in [:player :play-state] (partial cycle-values ["stop" "play"]))
-                (= line 1) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
-                :else (print "line: " line))))}})
+          select-player-setting!}})
 
 ; handle keys
 (defn press-key [state k]
