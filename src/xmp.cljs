@@ -250,10 +250,11 @@
         (when s
           (let [row (.-row s)
                 last-row (get-in @state [:sync :last-row])
+                tick-freq (get-in @state [:player :tick-freq])
                 time-hw-ms (.-time_hw s)
                 time-alsa-delay-ms (.-time_alsa_delay s)
                 bpm (.-bpm s)]
-            (when (and (= (mod row 4) 0)
+            (when (and (= (mod row tick-freq) 0)
                        (not= row last-row))
               (let [next-tick-ms (- time-alsa-delay-ms (- (.getTime (js/Date.)) time-hw-ms))]
                 (js/setTimeout send-pulse (max 0 next-tick-ms))
