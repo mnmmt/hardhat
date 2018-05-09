@@ -272,14 +272,17 @@
   ; start the xmp manager loop
   (go
     (loop [player nil]
-      ; kill the old xmp session
-      (let [module-file (<! (@app-state :player-chan))]
-        (when player (.kill player))
-        (if (= module-file :stop)
-          (recur nil)
-          (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
-            (.on new-player "data" (partial got-player-data! app-state))
-            (recur new-player))))))
+      (let [[action & args] (<! (@app-state :player-chan))]
+        (case action
+          :play
+          (let [[module-file] args]
+            ; kill the old xmp session
+            (when player (.kill player))
+            (if (= module-file :stop)
+              (recur nil)
+              (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
+                (.on new-player "data" (partial got-player-data! app-state))
+                (recur new-player))))))))
 
   ; what to do when mutation happens
   (add-watch app-state
@@ -288,9 +291,10 @@
                ; when active module changes send to xmp manager loop
                (when (changed? (old-state :player) (new-state :player) [:playing :play-state])
                  (put! (@app-state :player-chan)
-                       (if (= (-> new-state :player :play-state) "play")
-                         (-> new-state :player :playing)
-                         :stop)))
+                       [:play
+                        (if (= (-> new-state :player :play-state) "play")
+                          (-> new-state :player :playing)
+                          :stop)]))
                ; update the user interface
                (when (changed? old-state new-state [:player :display])
                  (update-ui! new-state))))
