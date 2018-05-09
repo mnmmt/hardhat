@@ -163,14 +163,18 @@
   (let [line (or (-> @state :display :edit-line) 0)
         menu-length (count edit-menu)
         channel-count (count (-> @state :player :channels))
-        selection (get edit-menu line)]
+        selection (get edit-menu line)
+        player-chan (@state :player-chan)
+        channel-index (- line menu-length)]
     (cond
       (= selection :play-state) (swap! state
                                        #(-> %
                                             (update-in [:player :play-state] (partial cycle-values ["stop" "play"]))))
       (= selection :tick-freq) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
-      (= selection :unmute-all) (swap! state assoc-in [:player :channels] default-channels)
-      (and (>= line menu-length) (< line (+ menu-length channel-count))) (swap! state update-in [:player :channels (- line menu-length)] not)
+      (= selection :unmute-all) (do (swap! state assoc-in [:player :channels] default-channels)
+                                    (put! player-chan [:unmute :all]))
+      (and (>= channel-index 0) (< channel-index channel-count)) (do (swap! state update-in [:player :channels channel-index] not)
+                                                                     (put! player-chan [:unmute channel-index]))
       :else (print "line: " line))))
 
 ; key handler map
@@ -275,14 +279,25 @@
       (let [[action & args] (<! (@app-state :player-chan))]
         (case action
           :play
-          (let [[module-file] args]
+          (let [[module-file] args
+                channels (-> @app-state :player :channels)
+                muted (map first (remove second (map-indexed #(vec [%1 %2]) channels)))
+                muted-args (if (count muted) ["-M" (clojure.string/join "," muted)] nil)
+                xmp-args (concat ["-l" module-file] muted-args)]
             ; kill the old xmp session
             (when player (.kill player))
             (if (= module-file :stop)
               (recur nil)
-              (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js ["-l" module-file]) #js {:env process/env})]
+              (let [new-player (node-pty/spawn "./xmp-wrap" (clj->js xmp-args) #js {:env process/env})]
                 (.on new-player "data" (partial got-player-data! app-state))
-                (recur new-player))))))))
+                (recur new-player))))
+          :unmute
+          (let [[channel] args]
+            (when player
+              (if (= channel :all)
+                (.write player "!")
+                (.write player (str (inc channel)))))
+            (recur player))))))
 
   ; what to do when mutation happens
   (add-watch app-state
