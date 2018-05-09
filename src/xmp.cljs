@@ -113,12 +113,9 @@
     (lcd-print mods)))
 
 (defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels]}]
-  (let [channel-list (if (= play-state "play")
-                       (range (count default-channels))
-                       [])
-        lines (->> channel-list
+  (let [lines (->> (range (count channels))
                    (map #(str "[" (if (get channels %) "X" " ")  "] ch " (inc %)))
-                   (concat [(play-state-toggle play-state) (str "tick: " tick-freq)]))
+                   (concat [(play-state-toggle play-state) (str "tick: " tick-freq) "unmute all"]))
         lines (concat lines lines)
         lines (->> lines
                    (split-at (or edit-line 0))
@@ -150,14 +147,9 @@
         index (max (.indexOf modules module) 0)]
     (swap! state assoc-in [:display :module] (get modules (mod (dir-fn index) (count modules))))))
 
-(defn get-channels [state]
-  (if (= (-> state :player :play-state) "play")
-    (-> state :player :channels)
-    []))
-
 (defn scroll-edit-fn [dir-fn state]
-  (let [channels (get-channels @state)]
-    (swap! state update-in [:display :edit-line] (fn [edit-line] (mod (dir-fn edit-line) (+ (count channels) 2))))))
+  (let [channels (-> @state :player :channels)]
+    (swap! state update-in [:display :edit-line] (fn [edit-line] (mod (dir-fn edit-line) (+ (count channels) (count edit-menu)))))))
 
 (defn toggle-screen! [state]
   (swap! state update-in [:display :screen] (partial cycle-values [:play :mods])))
@@ -166,19 +158,20 @@
   (swap! state
          #(-> %
               (assoc-in [:player :playing] (-> % :display :module))
-              (assoc-in [:player :channels] default-channels)
               (assoc-in [:display :screen] :play))))
 
 (defn select-player-setting! [state]
-  (let [max-line (count (+ (get-channels @state) 2))
-        line (min (or (-> @state :display :edit-line) 0) (dec max-line))]
+  (let [line (or (-> @state :display :edit-line) 0)
+        menu-length (count edit-menu)
+        channel-count (count (-> @state :player :channels))
+        selection (get edit-menu line)]
     (cond
-      (= line 0) (swap! state
-                        #(-> %
-                             (update-in [:player :play-state] (partial cycle-values ["stop" "play"]))
-                             (assoc-in [:player :channels] default-channels)))
-      (= line 1) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
-      (and (> line 1) (< line max-line)) (swap! state update-in [:player :channels (- line 2)] not)
+      (= selection :play-state) (swap! state
+                                       #(-> %
+                                            (update-in [:player :play-state] (partial cycle-values ["stop" "play"]))))
+      (= selection :tick-freq) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
+      (= selection :unmute-all) (swap! state assoc-in [:player :channels] default-channels)
+      (and (>= line menu-length) (< line (+ menu-length channel-count))) (swap! state update-in [:player :channels (- line menu-length)] not)
       :else (print "line: " line))))
 
 ; key handler map
@@ -309,6 +302,7 @@
            (let [mod-files (find-mod-files args)]
              (-> old-state
                  (assoc :modules mod-files)
+                 (assoc-in [:player :playing] (first mod-files))
                  (assoc-in [:display :module] (first mod-files)))))))
 
 ; avoid missing goog.global.setTimeout
