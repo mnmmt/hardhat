@@ -26,9 +26,8 @@
                   :bpm 180
                   :channels default-channels}
          :modules []
-         :sync {:last-row 0}}))
-
-(def player-chan (chan))
+         :sync {:last-row 0}
+         :player-chan (chan)}))
 
 ; TODO:
 ;  * LCD UI
@@ -274,7 +273,7 @@
   (go
     (loop [player nil]
       ; kill the old xmp session
-      (let [module-file (<! player-chan)]
+      (let [module-file (<! (@app-state :player-chan))]
         (when player (.kill player))
         (if (= module-file :stop)
           (recur nil)
@@ -288,7 +287,7 @@
              (fn [k a old-state new-state]
                ; when active module changes send to xmp manager loop
                (when (changed? (old-state :player) (new-state :player) [:playing :play-state])
-                 (put! player-chan
+                 (put! (@app-state :player-chan)
                        (if (= (-> new-state :player :play-state) "play")
                          (-> new-state :player :playing)
                          :stop)))
