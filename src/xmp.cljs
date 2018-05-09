@@ -12,6 +12,10 @@
 
 (enable-console-print!)
 
+(def default-channels [1 1 1 1 1 1 1])
+
+(def edit-menu [:play-state :tick-freq :unmute-all])
+
 (def app-state
   (atom {:display {:screen :mods
                    :module nil
@@ -20,13 +24,11 @@
                   :play-state "stop"
                   :tick-freq 4
                   :bpm 180
-                  :chans [1 1 1 1 1 1 1 1]}
+                  :channels default-channels}
          :modules []
          :sync {:last-row 0}}))
 
 (def player-chan (chan))
-
-(def channel-count 8)
 
 ; TODO:
 ;  * LCD UI
@@ -110,10 +112,13 @@
               (str "  " (second mods))]]
     (lcd-print mods)))
 
-(defn lcd-edit-list [edit-line play-state sync-freq]
-  (let [lines (->> (range channel-count)
-                   (map #(str "ch " %))
-                   (concat [(play-state-toggle play-state) (str "tick: " sync-freq)]))
+(defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels]}]
+  (let [channel-list (if (= play-state "play")
+                       (range (count default-channels))
+                       [])
+        lines (->> channel-list
+                   (map #(str "[" (if (get channels %) "X" " ")  "] ch " (inc %)))
+                   (concat [(play-state-toggle play-state) (str "tick: " tick-freq)]))
         lines (concat lines lines)
         lines (->> lines
                    (split-at (or edit-line 0))
@@ -126,10 +131,11 @@
     (lcd-print lines)))
 
 (defn update-ui! [state]
+  (print "update-ui! state:")
+  (print state)
   (case (-> state :display :screen)
     :mods (lcd-track-list (-> state :modules) (-> state :display :module))
-    :play (lcd-edit-list (-> state :display :edit-line) (-> state :player :play-state) (-> state :player :tick-freq)))
-  (print state))
+    :play (lcd-edit-list (-> state :display :edit-line) (state :player))))
 
 ; ***** input handling ***** ;
 
@@ -144,8 +150,14 @@
         index (max (.indexOf modules module) 0)]
     (swap! state assoc-in [:display :module] (get modules (mod (dir-fn index) (count modules))))))
 
+(defn get-channels [state]
+  (if (= (-> state :player :play-state) "play")
+    (-> state :player :channels)
+    []))
+
 (defn scroll-edit-fn [dir-fn state]
-  (swap! state update-in [:display :edit-line] (fn [edit-line] (mod (dir-fn edit-line) (+ channel-count 2)))))
+  (let [channels (get-channels @state)]
+    (swap! state update-in [:display :edit-line] (fn [edit-line] (mod (dir-fn edit-line) (+ (count channels) 2))))))
 
 (defn toggle-screen! [state]
   (swap! state update-in [:display :screen] (partial cycle-values [:play :mods])))
@@ -154,13 +166,19 @@
   (swap! state
          #(-> %
               (assoc-in [:player :playing] (-> % :display :module))
+              (assoc-in [:player :channels] default-channels)
               (assoc-in [:display :screen] :play))))
 
 (defn select-player-setting! [state]
-  (let [line (or (-> @state :display :edit-line) 0)]
+  (let [max-line (count (+ (get-channels @state) 2))
+        line (min (or (-> @state :display :edit-line) 0) (dec max-line))]
     (cond
-      (= line 0) (swap! state update-in [:player :play-state] (partial cycle-values ["stop" "play"]))
+      (= line 0) (swap! state
+                        #(-> %
+                             (update-in [:player :play-state] (partial cycle-values ["stop" "play"]))
+                             (assoc-in [:player :channels] default-channels)))
       (= line 1) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
+      (and (> line 1) (< line max-line)) (swap! state update-in [:player :channels (- line 2)] not)
       :else (print "line: " line))))
 
 ; key handler map
