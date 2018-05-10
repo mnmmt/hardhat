@@ -100,8 +100,8 @@
 
 (defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels bpm]}]
   (let [lines (->> (range (count channels))
-                   (map #(str "[" (if (get channels %) "X" " ")  "] ch " (inc %)))
-                   (concat [(play-state-toggle play-state) (str "tick: " tick-freq) "unmute all"]))
+                   (map #(str "[" (if (get channels %) "X" " ")  "] c" (.toUpperCase (.toString (inc %) 16))))
+                   (concat [(play-state-toggle play-state) (str "tick: " tick-freq) "unmute"]))
         lines (concat lines lines)
         lines (->> lines
                    (split-at (or edit-line 0))
@@ -110,9 +110,9 @@
                    (first)) 
         first-line (first lines)
         first-line (str first-line
-                        (apply str (for [x (range (- 15 (count first-line)))] " "))
+                        (apply str (for [x (range (- 8 (count first-line)))] " "))
                         (if (= play-state "play") bpm "---")
-                        " BPM")
+                        "bpm")
         lines [(str "> " first-line)
                (str "  " (second lines))]]
     (lcd-print lines)))
