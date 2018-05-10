@@ -98,7 +98,7 @@
               (str "  " (second mods))]]
     (lcd-print mods)))
 
-(defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels]}]
+(defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels bpm]}]
   (let [lines (->> (range (count channels))
                    (map #(str "[" (if (get channels %) "X" " ")  "] ch " (inc %)))
                    (concat [(play-state-toggle play-state) (str "tick: " tick-freq) "unmute all"]))
@@ -108,8 +108,12 @@
                    (second)
                    (split-at 2)
                    (first)) 
-        ; TODO left-pad first to add BPM
-        lines [(str "> " (first lines))
+        first-line (first lines)
+        first-line (str first-line
+                        (apply str (for [x (range (- 15 (count first-line)))] " "))
+                        (if (= play-state "play") bpm "---")
+                        " BPM")
+        lines [(str "> " first-line)
                (str "  " (second lines))]]
     (lcd-print lines)))
 
