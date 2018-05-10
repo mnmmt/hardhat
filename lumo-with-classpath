@@ -1,0 +1,3 @@
+#!/bin/sh
+
+lumo -K -D andare:0.7.0 "$@"
