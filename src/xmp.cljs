@@ -90,7 +90,7 @@
 (defn lcd-track-list [modules module]
   (let [pos (.indexOf (to-array modules) module)
         ;modules (concat ["---"] modules)
-        modules (concat modules modules)
+        modules (if (> (count modules) 1) (concat modules modules) modules)
         mods (->> modules
                   (split-at pos)
                   (second)
