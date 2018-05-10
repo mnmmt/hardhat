@@ -193,7 +193,10 @@
 
 ; handle keys
 (defn press-key [state k]
-  ((get-in keymap [(get-in @state [:display :screen]) k]) state))
+  (let [key-fn (get-in keymap [(get-in @state [:display :screen]) k])]
+    (if key-fn
+      (key-fn state)
+      (print "No such key-fn:" k))))
 
 (def button-map
   {0x01 :select
