@@ -302,7 +302,7 @@
                           (-> new-state :player :playing)
                           :stop)]))
                ; update the user interface
-               (when (changed? old-state new-state [:player :display])
+               (when (changed? old-state new-state [:player :display :modules])
                  (update-ui! new-state))))
 
   ; set the initial state after loading in module list
