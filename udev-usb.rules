@@ -1,0 +1,3 @@
+# what to do when a USB stick is inserted
+ACTION=="add", BUS=="usb", KERNEL=="sd?1", RUN+="/home/tc/hardhat/mounter %k"
+ACTION=="remove", BUS=="usb", KERNEL=="sd?1", RUN+="/home/tc/hardhat/mounter"

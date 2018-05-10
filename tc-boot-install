@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Install bootscript.sh to /opt/bootlocal.sh
+
+grep -v hardhat /opt/bootlocal.sh > /tmp/bootlocal.sh
+echo "/home/tc/hardhat/bootscript.sh" >> /tmp/bootlocal.sh
+cat /tmp/bootlocal.sh > /opt/bootlocal.sh

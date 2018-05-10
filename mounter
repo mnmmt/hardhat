@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# This is run by udev rules
+
+date >> /home/tc/mount.log
+echo "received: $1" >> /home/tc/mount.log
+
+# if this was an "add device" call
+if [ "$1" != "" ]
+then
+  # mount the USB device
+  mkdir -p "/mnt/usb/$1"
+  /usr/bin/mount "/dev/$1" "/mnt/usb/$1"
+fi
+
+# Notify the xmp wrapper script to reload module list
+/usr/local/bin/bash -c 'echo -n "reload" >/dev/udp/localhost/2992'
