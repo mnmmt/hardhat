@@ -3,6 +3,7 @@
 (ns xmp.core
   (:require
     [path]
+    [dgram]
     [process]
     [clojure.string]
     [child_process]
@@ -313,6 +314,16 @@
                  (assoc :modules mod-files)
                  (assoc-in [:player :playing] (first mod-files))
                  (assoc-in [:display :module] (first mod-files)))))))
+
+; listen for "reload" events when a USB stick is mounted by udev
+(let [server (.createSocket dgram "udp4")]
+  (.on server "listening"
+       (fn []
+         (.on server "message"
+              (fn [message remote]
+                (let [mod-files (find-mod-files args)]
+                  (swap! app-state assoc :modules mod-files))))))
+  (.bind server 2992 "127.0.0.1"))
 
 ; avoid missing goog.global.setTimeout
 ; https://dev.clojure.org/jira/browse/ASYNC-110
