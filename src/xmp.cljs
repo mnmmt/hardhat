@@ -12,7 +12,10 @@
 
 (enable-console-print!)
 
-(def default-channels [1 1 1 1 1 1 1 1 1 1 1])
+(def default-channels [1 1 1 1
+                       1 1 1 1
+                       1 1 1 1
+                       1 1 1 1])
 
 (def edit-menu [:play-state :tick-freq :unmute-all])
 
