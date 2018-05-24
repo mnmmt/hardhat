@@ -33,9 +33,6 @@
          :sync {:last-row 0}
          :player-chan (chan)}))
 
-; TODO:
-;  * TC - automount USB
-
 (def gpio (try (.-Gpio (js/require "onoff"))
             (catch :default e nil)))
 
@@ -60,7 +57,7 @@
 (def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
 
 ; find shell command args to discover module files
-(def find-args "-maxdepth 3 -type f \\( -iname \\*.xm -o -iname \\*.it -o -iname \\*.s3m -o -iname \\*.mod -o -iname \\*.med -o -iname \\*.oct -o -iname \\*.ahx \\)")
+(def find-args "-maxdepth 5 -type f \\( -iname \\*.xm -o -iname \\*.it -o -iname \\*.s3m -o -iname \\*.mod -o -iname \\*.med -o -iname \\*.oct -o -iname \\*.ahx \\)")
 
 ; function to find module files
 (defn find-mod-files [dirs]
