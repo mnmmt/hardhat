@@ -1,0 +1,64 @@
+openssh
+node
+alsa-utils
+alsa
+mpg123
+alsa-plugins-dev
+alsa-oss-dev
+rsync
+coreutils
+wiringpi
+libedit
+openssl
+libasound
+ncurses
+alsa-plugins
+libsamplerate-dev
+speexdsp-dev
+alsa-oss
+libasound-dev
+libacl
+popt
+gmp
+libcap
+ca-certificates
+alsa-modules-4.9.22-piCore
+libsamplerate
+speexdsp
+libsndfile-dev
+libattr
+libsndfile
+flac-dev
+libvorbis-dev
+sqlite3-dev
+flac
+libvorbis
+sqlite3
+libogg-dev
+libogg
+
+
+
+default:
+
+tc@box:~$ df -h
+Filesystem                Size      Used Available Use% Mounted on
+tmpfs                   390.6M     10.9M    379.7M   3% /
+tmpfs                   217.0M         0    217.0M   0% /dev/shm
+/dev/mmcblk0p2            9.6M      8.1M    816.0K  91% /mnt/mmcblk0p2
+/dev/loop0                1.1M      1.1M         0 100% /tmp/tcloop/mc
+/dev/loop1                1.9M      1.9M         0 100% /tmp/tcloop/openssh
+/dev/loop2                1.3M      1.3M         0 100% /tmp/tcloop/glib2
+/dev/loop3              128.0K    128.0K         0 100% /tmp/tcloop/libssh2
+/dev/loop4              256.0K    256.0K         0 100% /tmp/tcloop/ncurses
+/dev/loop5              128.0K    128.0K         0 100% /tmp/tcloop/libedit
+/dev/loop6                1.3M      1.3M         0 100% /tmp/tcloop/openssl
+/dev/loop7              128.0K    128.0K         0 100% /tmp/tcloop/gamin
+/dev/loop8              128.0K    128.0K         0 100% /tmp/tcloop/libelf
+/dev/loop9              384.0K    384.0K         0 100% /tmp/tcloop/pcre
+/dev/loop10             384.0K    384.0K         0 100% /tmp/tcloop/libgcrypt
+/dev/loop11             640.0K    640.0K         0 100% /tmp/tcloop/ca-certificates
+/dev/loop12             128.0K    128.0K         0 100% /tmp/tcloop/bzip2-lib
+/dev/loop13               1.0M      1.0M         0 100% /tmp/tcloop/gcc_libs
+/dev/loop14             128.0K    128.0K         0 100% /tmp/tcloop/libgpg-error
+
