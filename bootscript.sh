@@ -3,8 +3,9 @@
 # Gets run from /opt/bootlocal.sh
 
 # turn on the LED so they know we're loading
-gpio -x mcp23017:100:0x20 mode 106 out
-gpio -x mcp23017:100:0x20 write 106 0
+# (commented out as this breaks the buttons)
+#gpio -x mcp23017:100:0x20 mode 106 out
+#gpio -x mcp23017:100:0x20 write 106 0
 
 # make sure mount points exist
 mkdir -p /mnt/usb
