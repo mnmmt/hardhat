@@ -14,4 +14,4 @@ then
 fi
 
 # Notify the xmp wrapper script to reload module list
-/usr/local/bin/bash -c 'echo -n "reload" >/dev/udp/localhost/2992'
+echo -n "reload" | /usr/bin/nc -u 127.0.0.1 2992 -w 1
