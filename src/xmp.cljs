@@ -94,7 +94,8 @@
                   (second)
                   (split-at 2)
                   (first)
-                  (map path/basename))
+                  (map path/basename)
+                  (map #(.substr % 0 14)))
         mods [(str "> " (first mods))
               (str "  " (second mods))]]
     (lcd-print mods)))
