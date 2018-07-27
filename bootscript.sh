@@ -16,4 +16,4 @@ cp udev-usb.rules /etc/udev/rules.d/99-udev-usb.rules 2>/dev/null
 /sbin/udevadm control --reload-rules &
 # launch main script
 n=/home/tc/.nvm/versions/node/*/bin/node
-$n xmp.js /mnt/usb modules /mnt/mmcblk0p2
+$n xmp.js /mnt/usb modules /mnt/mmcblk0p2 -u 127.0.0.1
