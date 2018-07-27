@@ -13,6 +13,8 @@
 
 (enable-console-print!)
 
+; ***** state ***** ;
+
 (def default-channels [1 1 1 1
                        1 1 1 1
                        1 1 1 1
@@ -33,28 +35,32 @@
          :sync {:last-row 0}
          :player-chan (chan)}))
 
+(console.log "xmp.cljs")
+
+; ***** args ***** ;
+
+; check how we were called (dev or prod)
+(def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
+(def argv (js->clj (minimist (.slice process/argv (if in-lumo (inc (.indexOf process/argv "src/xmp.cljs")) 2)))))
+
+; ***** interfaces ***** ;
+
 (def gpio (try (.-Gpio (js/require "onoff"))
             (catch :default e nil)))
+
+; set up sync pin out
+(def sync-pin (when gpio (gpio. 17 "out")))
 
 (def lcd (try (let [plate (.-plate (js/require "adafruit-i2c-lcd"))]
                 (plate. 1 0x20))
               (catch :default e nil)))
 
-; set up sync pin out
-(def sync-pin (when gpio (gpio. 17 "out")))
-
 (when lcd
   ; turn on sainsmart 1602 I2C backlight
   (.sendBytes lcd 0 0x1F))
 
-(console.log "xmp.cljs")
 
-; check how we were called (dev or prod)
-(def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
-(def args (.slice process/argv (if in-lumo (inc (.indexOf process/argv "src/xmp.cljs")) 2)))
-
-; terminal codes to clear the screen
-(def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
+; ***** mod files ***** ;
 
 ; find shell command args to discover module files
 (def find-args "-maxdepth 5 -type f \\( -iname \\*.xm -o -iname \\*.it -o -iname \\*.s3m -o -iname \\*.mod -o -iname \\*.med -o -iname \\*.oct -o -iname \\*.ahx \\)")
@@ -66,12 +72,10 @@
       (to-array (remove #(= % "") (.split (.toString (child_process/execSync find-cmd)) "\n"))))
     #js []))
 
-; check if keys have changed
-(defn changed? [a b ks]
-  (not= (map a ks)
-        (map b ks)))
-
 ; ***** display handling ***** ;
+
+; terminal codes to clear the screen
+(def clear-screen (.toString (js/Buffer. #js [27 91 72 27 91 50 74])))
 
 (defn play-state-toggle [play-state]
   (if (= play-state "play") "stop" "play"))
@@ -206,6 +210,11 @@
    0x04 :down
    0x08 :up
    0x10 :left})
+
+; check if keys have changed
+(defn changed? [a b ks]
+  (not= (map a ks)
+        (map b ks)))
 
 ; set up input
 (if lcd
