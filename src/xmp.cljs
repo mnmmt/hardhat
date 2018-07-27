@@ -67,7 +67,7 @@
   ; set up our connection to the UI socket
   (when ui-host
     (let [dgram (.createSocket dgram "udp4")]
-      (.send dgram "HARDHAT lol\nhelo my fren" 3323 ui-host)
+      (.send dgram "     loading.     " 3323 ui-host)
       dgram)))
 
 (def screen-size
