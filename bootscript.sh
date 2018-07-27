@@ -8,7 +8,7 @@
 #gpio -x mcp23017:100:0x20 write 106 0
 
 # send initial screen to hardhat UI
-echo -e " \n          HARDHAT\n \n   bzzt.studio" | nc -u 127.0.0.1 3323
+echo -e " \n          HARDHAT\n \n   bzzt.studio" | nc -u 127.0.0.1 3323 -w 1
 
 # make sure mount points exist
 mkdir -p /mnt/usb
