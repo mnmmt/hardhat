@@ -8,6 +8,7 @@
     [clojure.string]
     [child_process]
     [node-pty]
+    [minimist]
     [cljs.core.async :refer [chan put! <!]])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
@@ -42,6 +43,8 @@
 ; check how we were called (dev or prod)
 (def in-lumo (>= (.indexOf (get process/argv 0) "lumo") 0))
 (def argv (js->clj (minimist (.slice process/argv (if in-lumo (inc (.indexOf process/argv "src/xmp.cljs")) 2)))))
+
+(def modfile-dirs (get argv "_"))
 
 ; ***** interfaces ***** ;
 
@@ -316,7 +319,7 @@
   ; set the initial state after loading in module list
   (swap! app-state
          (fn [old-state]
-           (let [mod-files (find-mod-files args)]
+           (let [mod-files (find-mod-files modfile-dirs)]
              (-> old-state
                  (assoc :modules mod-files)
                  (assoc-in [:player :playing] (first mod-files))
@@ -328,7 +331,7 @@
        (fn []
          (.on server "message"
               (fn [message remote]
-                (let [mod-files (find-mod-files args)]
+                (let [mod-files (find-mod-files modfile-dirs)]
                   (swap! app-state assoc :modules mod-files))))))
   (.bind server 2992 "127.0.0.1"))
 
