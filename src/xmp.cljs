@@ -70,6 +70,17 @@
       (.send dgram "HARDHAT lol\nhelo my fren" 3323 ui-host)
       dgram)))
 
+(def screen-size
+  (cond
+    ui-socket
+    [16 4]
+
+    lcd
+    [14 2]
+
+    :else
+    [14 2]))
+
 ; ***** mod files ***** ;
 
 ; find shell command args to discover module files
@@ -111,12 +122,12 @@
         mods (->> modules
                   (split-at pos)
                   (second)
-                  (split-at 2)
+                  (split-at (second screen-size))
                   (first)
                   (map path/basename)
-                  (map #(.substr % 0 14)))
-        mods [(str "> " (first mods))
-              (str "  " (second mods))]]
+                  (map #(.substr % 0 (first screen-size))))
+        mods (concat [(str "> " (first mods))]
+                     (map #(str "  " %) (rest (take (inc (second screen-size)) mods))))]
     (lcd-print mods)))
 
 (defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels bpm]}]
@@ -127,15 +138,15 @@
         lines (->> lines
                    (split-at (or edit-line 0))
                    (second)
-                   (split-at 2)
+                   (split-at (second screen-size))
                    (first)) 
         first-line (first lines)
         first-line (str first-line
-                        (apply str (for [x (range (- 8 (count first-line)))] " "))
+                        (apply str (for [x (range (- (- (first screen-size) 6) (count first-line)))] " "))
                         (if (= play-state "play") bpm "---")
                         "bpm")
-        lines [(str "> " first-line)
-               (str "  " (second lines))]]
+        lines (concat [(str "> " first-line)]
+                      (map #(str "  " %) (rest (take (inc (second screen-size)) lines))))]
     (lcd-print lines)))
 
 (defn update-ui! [state]
