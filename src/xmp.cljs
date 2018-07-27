@@ -45,6 +45,7 @@
 (def argv (js->clj (minimist (.slice process/argv (if in-lumo (inc (.indexOf process/argv "src/xmp.cljs")) 2)))))
 
 (def modfile-dirs (get argv "_"))
+(def ui-host (get argv "u"))
 
 ; ***** interfaces ***** ;
 
@@ -62,6 +63,12 @@
   ; turn on sainsmart 1602 I2C backlight
   (.sendBytes lcd 0 0x1F))
 
+(def ui-socket
+  ; set up our connection to the UI socket
+  (when ui-host
+    (let [dgram (.createSocket dgram "udp4")]
+      (.send dgram "HARDHAT lol\nhelo my fren" 3323 ui-host)
+      dgram)))
 
 ; ***** mod files ***** ;
 
@@ -85,12 +92,17 @@
 
 (defn lcd-print [messages]
   (let [txt (clojure.string/join "\n" messages)]
-    (if lcd
+    (cond
+      ui-socket
+      (.send ui-socket txt 3323 ui-host)
+
+      lcd
       (do
         (.clear lcd)
         (.message lcd txt))
-      (do
-        (print txt)))))
+
+      :else
+      (print txt))))
 
 (defn lcd-track-list [modules module]
   (let [pos (.indexOf (to-array modules) module)
@@ -207,12 +219,23 @@
       (key-fn state)
       (print "No such key-fn:" k))))
 
-(def button-map
+(def lcd-button-map
   {0x01 :select
    0x02 :right
    0x04 :down
    0x08 :up
    0x10 :left})
+
+(def socket-button-map
+  {0 :up
+   1 :down
+   2 :left
+   3 :right
+   4 :select
+   5 :select
+   6 :select
+   7 :select
+   8 :select})
 
 ; check if keys have changed
 (defn changed? [a b ks]
@@ -220,11 +243,21 @@
         (map b ks)))
 
 ; set up input
-(if lcd
+(cond
+  ui-socket
+  (.on ui-socket "message"
+       (fn [message remote]
+         (let [[kind button state] (.split (.toString message) " ")]
+           (when (and (= kind "button") (= (js/parseInt state) 1))
+             (press-key app-state (get socket-button-map (js/parseInt button)))))))
+
+  lcd
   ; using LCD button interface on device
   (.on lcd "button_down"
        (fn [button]
-         (press-key app-state (get button-map button))))
+         (press-key app-state (get lcd-button-map button))))
+
+  :else
   ; using console tty for development
   (do
     (.setRawMode process/stdin true)
