@@ -1,11 +1,24 @@
 XMPLIBS=libxmp.so libxmp.so.4 libxmp.so.4.4.2
 XMPLIBSPATH=$(foreach lib,$(XMPLIBS),build/libxmp/lib/$(lib))
+NODE=/home/tc/.nvm/versions/node/v8*/bin/node
 
-all: xmp.js ./build/xmp-cli/src/xmp
+all: xmp.js ./build/xmp-cli/src/xmp node node_modules
 
 xmp.js: src/xmp.cljs
 	rm -rf target out
 	./node_modules/.bin/lumo -K -D andare:0.7.0 build.cljs
+
+node_modules: node
+	$(NODE) install
+
+node: $(NODE)
+
+$(NODE): ~/.nvm
+	export NVM_DIR="${HOME}/.nvm" && source "$$NVM_DIR/nvm.sh" && nvm install 8
+	touch node
+
+~/.nvm:
+	curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
 
 build/libxmp/.git:
 	git clone https://github.com/cmatsuoka/libxmp.git build/libxmp
