@@ -53,7 +53,7 @@
             (catch :default e nil)))
 
 ; set up sync pin out
-(def sync-pin (when gpio (gpio. 17 "out")))
+(def sync-pin (when gpio (gpio. 22 "out")))
 
 (def lcd (try (let [plate (.-plate (js/require "adafruit-i2c-lcd"))]
                 (plate. 1 0x20))
