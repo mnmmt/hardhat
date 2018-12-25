@@ -19,7 +19,7 @@
 (def default-channels [1 1 1 1
                        1 1 1 1
                        1 1 1 1
-                       1 1 1 1])
+                       1 1 1])
 
 (def edit-menu [:play-state :tick-freq :unmute-all])
 
@@ -79,7 +79,7 @@
     [14 2]
 
     :else
-    [14 2]))
+    [16 4]))
 
 ; ***** mod files ***** ;
 
@@ -132,7 +132,7 @@
 
 (defn lcd-edit-list [edit-line {:keys [play-state tick-freq channels bpm]}]
   (let [lines (->> (range (count channels))
-                   (map #(str "[" (if (get channels %) "X" " ")  "] c" (.toUpperCase (.toString % 16))))
+                   (map #(str "[" (if (get channels %) "X" " ")  "] c" (.toUpperCase (.toString (inc %) 16))))
                    (concat [(play-state-toggle play-state) (str "tick: " tick-freq) "unmute"]))
         lines (concat lines lines)
         lines (->> lines
@@ -145,8 +145,9 @@
                         (apply str (for [x (range (- (- (first screen-size) 6) (count first-line)))] " "))
                         (if (= play-state "play") bpm "---")
                         "bpm")
-        lines (concat [(str "> " first-line)]
-                      (map #(str "  " %) (rest (take (inc (second screen-size)) lines))))]
+        lines (concat [(str "  " (clojure.string/join "" (map #(str (if (get channels %) (.toUpperCase (.toString (inc %) 16)) " ")) (range (count channels)))))
+                       (str "> " first-line)]
+                      (map #(str "  " %) (rest (take (second screen-size) lines))))]
     (lcd-print lines)))
 
 (defn update-ui! [state]
