@@ -182,6 +182,10 @@
               (assoc-in [:player :playing] (-> % :display :module))
               (assoc-in [:display :screen] :play))))
 
+(defn toggle-channel! [channel-index state]
+  (swap! state update-in [:player :channels channel-index] not)
+  (put! (@state :player-chan) [:unmute channel-index]))
+
 (defn select-player-setting! [state]
   (let [line (or (-> @state :display :edit-line) 0)
         menu-length (count edit-menu)
@@ -196,8 +200,7 @@
       (= selection :tick-freq) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
       (= selection :unmute-all) (do (swap! state assoc-in [:player :channels] default-channels)
                                     (put! player-chan [:unmute :all]))
-      (and (>= channel-index 0) (< channel-index channel-count)) (do (swap! state update-in [:player :channels channel-index] not)
-                                                                     (put! player-chan [:unmute channel-index]))
+      (and (>= channel-index 0) (< channel-index channel-count)) (toggle-channel! channel-index state player-chan)
       :else (print "line: " line))))
 
 ; key handler map
