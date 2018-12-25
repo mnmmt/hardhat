@@ -200,7 +200,7 @@
       (= selection :tick-freq) (swap! state update-in [:player :tick-freq] (partial cycle-values [1 2 4 8 3 6]))
       (= selection :unmute-all) (do (swap! state assoc-in [:player :channels] default-channels)
                                     (put! player-chan [:unmute :all]))
-      (and (>= channel-index 0) (< channel-index channel-count)) (toggle-channel! channel-index state player-chan)
+      (and (>= channel-index 0) (< channel-index channel-count)) (toggle-channel! channel-index state)
       :else (print "line: " line))))
 
 ; key handler map
@@ -280,16 +280,20 @@
     (.on process/stdin "data"
          (fn [k]
            (let [v (.toString (js/Buffer. k) "hex")]
-             (case v
-               "1b5b44" (press-key app-state :left)
-               "1b5b43" (press-key app-state :right)
-               "1b5b41" (press-key app-state :up)
-               "1b5b42" (press-key app-state :down)
-               "20" (press-key app-state :select)
-               "0d" (press-key app-state :select)
-               "1b" (process/exit)
-               "03" (process/exit)
-               (js/console.log "key" v)))))))
+             ; check for channel toggle (number keys)
+             (if (contains? (set (map #(str (+ 31 %)) (range 9))) v)
+               (toggle-channel! (dec (int (str k))) app-state)
+               ; check for navigation keys
+               (case v
+                 "1b5b44" (press-key app-state :left)
+                 "1b5b43" (press-key app-state :right)
+                 "1b5b41" (press-key app-state :up)
+                 "1b5b42" (press-key app-state :down)
+                 "20" (press-key app-state :select)
+                 "0d" (press-key app-state :select)
+                 "1b" (process/exit)
+                 "03" (process/exit)
+                 (js/console.log "key" v))))))))
 
 ; ***** mod player control ***** ;
 
